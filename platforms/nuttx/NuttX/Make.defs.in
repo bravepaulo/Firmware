@@ -87,7 +87,7 @@ FLAGS = -Os -g2 \
 
 # enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
-	FLAGS += -finstrument-functions -ffixed-r10
+	FLAGS += -finstrument-functions -ffixed-r10 -finstrument-functions-exclude-file-list=stm32_spi.c
 endif
 
 CFLAGS = $(ARCHINCLUDES) \
