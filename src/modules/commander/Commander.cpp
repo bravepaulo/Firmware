@@ -482,6 +482,11 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "auto:precland")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND;
 
+
+                        } else if (!strcmp(argv[2], "ALCYON_AL")) {
+                        new_main_state =  commander_state_s::MAIN_STATE_ALCYON_AL;
+
+
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[2]);
 			}
@@ -509,6 +514,58 @@ int commander_main(int argc, char *argv[])
 
 		return (ret ? 0 : 1);
 	}
+
+        /*****************************************************************************************************************************
+         //This block is just to check which mode is enganged considering that QGcontrol will not be modified to show which mode is
+         //egaged.
+         // In order to use this, at mavlinkconsole type commander mode modeengaged*/
+
+             if (!strcmp(argv[1],"modeengaged")){
+
+               if (internal_state.main_state==0)
+               {
+                  PX4_INFO("Mode Engaged: Manual");
+               }else if(internal_state.main_state==1){
+                 PX4_INFO("Mode Engaged: Altitude Control");
+               }else if(internal_state.main_state==2){
+                   PX4_INFO("Mode Engaged: Position Control");
+               }else if(internal_state.main_state==3){
+                 PX4_INFO("Mode Engaged: Mission");
+               }else if(internal_state.main_state==4){
+                 PX4_INFO("Mode Engaged: Loiter");
+               }else if(internal_state.main_state==5){
+                 PX4_INFO("Mode Engaged: RTL");
+               }else if(internal_state.main_state==6){
+                 PX4_INFO("Mode Engaged: ACRO");
+               }else if(internal_state.main_state==7){
+                 PX4_INFO("Mode Engaged: OFF Board");
+               }else if(internal_state.main_state==8){
+                 PX4_INFO("Mode Engaged: Stabilized");
+               }else if(internal_state.main_state==9){
+                 PX4_INFO("Mode Engaged: Ratitude");
+               }else if(internal_state.main_state==10){
+                 PX4_INFO("Mode Engaged: AUTO_TAKEOFF");
+               }else if(internal_state.main_state==11){
+                 PX4_INFO("Mode Engaged: AUTO_LAND");
+               }else if(internal_state.main_state==12){
+                 PX4_INFO("Mode Engaged: AUTO_FOLLOW_TARGET");
+               }else if(internal_state.main_state==13){
+                 PX4_INFO("Mode Engaged: AUTO_PRECLAND");
+               }else if(internal_state.main_state==14){
+                 PX4_INFO("Mode Engaged: Altitude Control");
+               }else if(internal_state.main_state==15){
+                   PX4_INFO("Mode Engaged: MAX");
+                }else if(internal_state.main_state==16){
+                 PX4_INFO("Mode Engaged: Alcyon AUTO_LAND");
+                  }
+
+
+             }
+
+
+         //*****************************************************************************************************************************
+
+
 
 	usage("unrecognized command");
 	return 1;
@@ -683,7 +740,16 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					reset_posvel_validity(changed);
 					main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
+
+                                } else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALCYON_AL) { //Included by Paulo on 30/03/2020*/
+                                   /* ALCYON_AL Autoland mode for the drone */
+
+                                   reset_posvel_validity(changed);
+                                   main_ret = main_state_transition(*status_local, commander_state_s::MAIN_STATE_ALCYON_AL, status_flags, &internal_state);
+
+
+
+                                } else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					if (custom_sub_mode > 0) {
 						reset_posvel_validity(changed);
@@ -3124,7 +3190,17 @@ Commander::update_control_mode()
 	control_mode.flag_external_manual_override_ok = (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 			&& !status.is_vtol);
 
+         control_mode.flag_control_alcyon_al_enabled = false;
+
 	switch (status.nav_state) {
+
+        case vehicle_status_s::NAVIGATION_STATE_ALCYON_AL:
+            control_mode.flag_control_alcyon_al_enabled = true;
+            control_mode.flag_control_manual_enabled = true;
+            control_mode.flag_control_rates_enabled = stabilization_required();
+            control_mode.flag_control_attitude_enabled = stabilization_required();
+                       break;
+
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_rates_enabled = stabilization_required();

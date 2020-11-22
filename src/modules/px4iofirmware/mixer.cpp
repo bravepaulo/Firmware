@@ -421,6 +421,7 @@ mixer_callback(uintptr_t handle,
 
 			} else {
 				control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
+
 			}
 
 			break;

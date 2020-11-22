@@ -494,13 +494,21 @@ MulticopterAttitudeControl::Run()
 		if (run_att_ctrl) {
 			if (attitude_updated) {
 				// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
-				if (_v_control_mode.flag_control_manual_enabled &&
-				    !_v_control_mode.flag_control_altitude_enabled &&
-				    !_v_control_mode.flag_control_velocity_enabled &&
-				    !_v_control_mode.flag_control_position_enabled) {
-					generate_attitude_setpoint(_attitude_dt, _reset_yaw_sp);
-					attitude_setpoint_generated = true;
-				}
+
+                      if (_v_control_mode.flag_control_alcyon_al_enabled)
+                                {
+                                  //Do anything. Attitude setpoint coming from from Alcyon module
+
+                            }else{
+
+                                    if (_v_control_mode.flag_control_manual_enabled &&
+                                            !_v_control_mode.flag_control_altitude_enabled &&
+                                            !_v_control_mode.flag_control_velocity_enabled &&
+                                            !_v_control_mode.flag_control_position_enabled) {
+                                                generate_attitude_setpoint(_attitude_dt, _reset_yaw_sp);
+                                                attitude_setpoint_generated = true;
+                                        }
+                            }
 
 				control_attitude();
 

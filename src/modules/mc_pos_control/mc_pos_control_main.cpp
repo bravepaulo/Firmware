@@ -262,7 +262,7 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static int	task_main_trampoline(int argc, char *argv[]);
+    static int	task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * check if task should be switched because of failsafe

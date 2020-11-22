@@ -61,6 +61,10 @@ px4_add_board(
 		uavcan
 
 	MODULES
+		radio_alcyon_module # Module that will listening the engagement of automatic landing
+		alcyon_autoland # Module that will make the interface with alcyon board and will set  attitude setpoints
+		alcyon # Module created for tests 
+		i3s_pnp_observer
 		attitude_estimator_q
 		camera_feedback
 		commander

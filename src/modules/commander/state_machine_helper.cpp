@@ -274,6 +274,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_STAB:
 	case commander_state_s::MAIN_STATE_ACRO:
 	case commander_state_s::MAIN_STATE_RATTITUDE:
+        case commander_state_s::MAIN_STATE_ALCYON_AL:
+
 		ret = TRANSITION_CHANGED;
 		break;
 
@@ -431,6 +433,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	case commander_state_s::MAIN_STATE_STAB:
 	case commander_state_s::MAIN_STATE_ALTCTL:
 
+        case commander_state_s::MAIN_STATE_ALCYON_AL:
+
 		/* require RC for all manual modes */
 		if (rc_lost && is_armed) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
@@ -459,6 +463,12 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			case commander_state_s::MAIN_STATE_ALTCTL:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 				break;
+
+
+                        case commander_state_s::MAIN_STATE_ALCYON_AL:
+                            status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALCYON_AL;
+                            break;
+
 
 			default:
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;

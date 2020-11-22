@@ -40,6 +40,7 @@
 #include "FlightTask.hpp"
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
+#include <uORB/topics/thrust_off_i3s.h>
 
 class FlightTaskOffboard : public FlightTask
 {
@@ -51,11 +52,18 @@ public:
 	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool updateInitialize() override;
 
+    struct thrust_off_i3s_s thrust_off_i3s_sub;
+
 protected:
+
+
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
+    uORB::Subscription _sub_thrust_off_i3s {ORB_ID(thrust_off_i3s)};
 
 private:
 	matrix::Vector3f _position_lock{};
+    struct  thrust_off_i3s_s thrust_off_i3s;
+
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,

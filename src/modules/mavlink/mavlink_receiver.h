@@ -97,6 +97,11 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/i3s_custom.h>
+#include <uORB/topics/image_corners.h>
+//#include <v2.0/custom_messages/mavlink_msg_i3s_custom.h>
+//#include <v2.0/custom_messages/mavlink_msg_i3s_img_corners.h>
+
 
 class Mavlink;
 
@@ -114,7 +119,7 @@ public:
 	static void *start_helper(void *context);
 
 private:
-
+    void handle_message_i3s_img_corners (mavlink_message_t *msg);
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
 
 	/**
@@ -165,6 +170,8 @@ private:
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
+    void handle_message_i3s_custom(mavlink_message_t *msg);
+
 
 
 	void Run();
@@ -212,6 +219,8 @@ private:
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
+    orb_advert_t _image_corners_pub1{nullptr};
+
 	// ORB publications
 	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
@@ -238,7 +247,10 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
-	// ORB publications (multi)
+    uORB::Publication<i3s_custom_s>	_i3s_custom_pub {ORB_ID(i3s_custom)};
+    uORB::Publication<image_corners_s>	_image_coners_pub {ORB_ID(image_corners)};
+
+    // ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc), ORB_PRIO_LOW};

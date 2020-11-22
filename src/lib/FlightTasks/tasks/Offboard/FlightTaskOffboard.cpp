@@ -37,6 +37,7 @@
 #include <mathlib/mathlib.h>
 #include <float.h>
 
+
 using namespace matrix;
 
 bool FlightTaskOffboard::updateInitialize()
@@ -44,6 +45,7 @@ bool FlightTaskOffboard::updateInitialize()
 	bool ret = FlightTask::updateInitialize();
 
 	_sub_triplet_setpoint.update();
+
 
 	// require a valid triplet
 	ret = ret && _sub_triplet_setpoint.get().current.valid;
@@ -93,66 +95,6 @@ bool FlightTaskOffboard::update()
 
 	}
 
-	// Loiter
-	if (_sub_triplet_setpoint.get().current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		// loiter just means that the vehicle should keep position
-		if (!PX4_ISFINITE(_position_lock(0))) {
-			_position_setpoint = _position_lock = _position;
-
-		} else {
-			_position_setpoint = _position_lock;
-		}
-
-		// don't have to continue
-		return true;
-
-	} else {
-		_position_lock.setAll(NAN);
-	}
-
-	// Takeoff
-	if (_sub_triplet_setpoint.get().current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-		// just do takeoff to default altitude
-		if (!PX4_ISFINITE(_position_lock(0))) {
-			_position_setpoint = _position_lock = _position;
-			_position_setpoint(2) = _position_lock(2) = _position(2) - _param_mis_takeoff_alt.get();
-
-		} else {
-			_position_setpoint = _position_lock;
-		}
-
-		// don't have to continue
-		return true;
-
-	} else {
-		_position_lock.setAll(NAN);
-	}
-
-	// Land
-	if (_sub_triplet_setpoint.get().current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		// land with landing speed, but keep position in xy
-		if (!PX4_ISFINITE(_position_lock(0))) {
-			_position_setpoint = _position_lock = _position;
-			_position_setpoint(2) = _position_lock(2) = NAN;
-			_velocity_setpoint(2) = _param_mpc_land_speed.get();
-
-		} else {
-			_position_setpoint = _position_lock;
-			_velocity_setpoint(2) = _param_mpc_land_speed.get();
-		}
-
-		// don't have to continue
-		return true;
-
-	} else {
-		_position_lock.setAll(NAN);
-	}
-
-	// IDLE
-	if (_sub_triplet_setpoint.get().current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-		_thrust_setpoint.zero();
-		return true;
-	}
 
 	// Possible inputs:
 	// 1. position setpoint
@@ -167,9 +109,7 @@ bool FlightTaskOffboard::update()
 				      && _sub_vehicle_local_position.get().v_xy_valid;
 	const bool velocity_ctrl_z = _sub_triplet_setpoint.get().current.velocity_valid
 				     && _sub_vehicle_local_position.get().v_z_valid;
-	const bool feedforward_ctrl_xy = position_ctrl_xy && velocity_ctrl_xy;
-	const bool feedforward_ctrl_z = position_ctrl_z && velocity_ctrl_z;
-	const bool acceleration_ctrl = _sub_triplet_setpoint.get().current.acceleration_valid;
+    const bool acceleration_ctrl = _sub_triplet_setpoint.get().current.acceleration_valid;
 
 	// if nothing is valid in xy, then exit offboard
 	if (!(position_ctrl_xy || velocity_ctrl_xy || acceleration_ctrl)) {
@@ -181,57 +121,18 @@ bool FlightTaskOffboard::update()
 		return false;
 	}
 
-	// XY-direction
-	if (feedforward_ctrl_xy) {
-		_position_setpoint(0) = _sub_triplet_setpoint.get().current.x;
-		_position_setpoint(1) = _sub_triplet_setpoint.get().current.y;
-		_velocity_setpoint(0) = _sub_triplet_setpoint.get().current.vx;
-		_velocity_setpoint(1) = _sub_triplet_setpoint.get().current.vy;
-
-	} else if (position_ctrl_xy) {
-		_position_setpoint(0) = _sub_triplet_setpoint.get().current.x;
-		_position_setpoint(1) = _sub_triplet_setpoint.get().current.y;
-
-	} else if (velocity_ctrl_xy) {
-
-		if (_sub_triplet_setpoint.get().current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_LOCAL_NED) {
-			// in local frame: don't require any transformation
-			_velocity_setpoint(0) = _sub_triplet_setpoint.get().current.vx;
-			_velocity_setpoint(1) = _sub_triplet_setpoint.get().current.vy;
-
-		} else if (_sub_triplet_setpoint.get().current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
-			// in body frame: need to transorm first
-			// Note, this transformation is wrong because body-xy is not neccessarily on the same plane as locale-xy
-			_velocity_setpoint(0) = cosf(_yaw) * _sub_triplet_setpoint.get().current.vx - sinf(
-							_yaw) * _sub_triplet_setpoint.get().current.vy;
-			_velocity_setpoint(1) = sinf(_yaw) * _sub_triplet_setpoint.get().current.vx + cosf(
-							_yaw) * _sub_triplet_setpoint.get().current.vy;
-
-		} else {
-			// no valid frame
-			return false;
-		}
-	}
-
-	// Z-direction
-	if (feedforward_ctrl_z) {
-		_position_setpoint(2) = _sub_triplet_setpoint.get().current.z;
-		_velocity_setpoint(2) = _sub_triplet_setpoint.get().current.vz;
-
-	} else if (position_ctrl_z) {
-		_position_setpoint(2) = _sub_triplet_setpoint.get().current.z;
-
-	} else if (velocity_ctrl_z) {
-		_velocity_setpoint(2) = _sub_triplet_setpoint.get().current.vz;
-	}
 
 	// Acceleration
 	// Note: this is not supported yet and will be mapped to normalized thrust directly.
-	if (_sub_triplet_setpoint.get().current.acceleration_valid) {
-		_thrust_setpoint(0) = _sub_triplet_setpoint.get().current.a_x;
-		_thrust_setpoint(1) = _sub_triplet_setpoint.get().current.a_y;
-		_thrust_setpoint(2) = _sub_triplet_setpoint.get().current.a_z;
-	}
+
+
+        _sub_thrust_off_i3s.copy(&thrust_off_i3s_sub);
+
+
+
+        _thrust_setpoint(0) =thrust_off_i3s_sub.thrust_off[0];
+        _thrust_setpoint(1) =thrust_off_i3s_sub.thrust_off[1];
+        _thrust_setpoint(2) =thrust_off_i3s_sub.thrust_off[2];
 
 	// use default conditions of upwards position or velocity to take off
 	_constraints.want_takeoff = _checkTakeoff();

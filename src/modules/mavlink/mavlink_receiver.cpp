@@ -47,6 +47,8 @@
 #include <drivers/drv_tone_alarm.h>
 #include <ecl/geo/geo.h>
 
+
+
 #ifdef CONFIG_NET
 #include <net/if.h>
 #include <arpa/inet.h>
@@ -83,7 +85,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink_log_handler(parent),
 	_mission_manager(parent),
 	_parameters_manager(parent),
-	_mavlink_timesync(parent)
+    _mavlink_timesync(parent)
+
 {
 }
 
@@ -245,7 +248,16 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_debug_float_array(msg);
 		break;
 
-	default:
+
+    case MAVLINK_MSG_ID_I3S_IMG_CORNERS:
+        handle_message_i3s_img_corners(msg);
+        break;
+
+    case MAVLINK_MSG_ID_I3Scustom:
+        handle_message_i3s_custom(msg);
+        break;
+
+    default:
 		break;
 	}
 
@@ -887,7 +899,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					//XXX handle global pos setpoints (different MAV frames)
-					_pos_sp_triplet_pub.publish(pos_sp_triplet);
+
+                    _pos_sp_triplet_pub.publish(pos_sp_triplet);
 				}
 			}
 		}
@@ -2517,6 +2530,83 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 /**
  * Receive data from UART/UDP
  */
+
+//Added by Agennium
+void
+MavlinkReceiver::handle_message_i3s_custom(mavlink_message_t *msg){
+    //custom I3S homography message
+
+mavlink_i3scustom_t customhomog;
+mavlink_msg_i3scustom_decode(msg, &customhomog);
+
+
+struct i3s_custom_s _custom_homog={};
+
+    _custom_homog.timestamp=hrt_absolute_time();
+    _custom_homog.flag=customhomog.flag;
+    _custom_homog.xi_x=customhomog.xi_x;
+    _custom_homog.xi_y=customhomog.xi_y;
+    _custom_homog.xi_z=customhomog.xi_z;
+    _custom_homog.v_x=customhomog.v_x;
+    _custom_homog.v_y=customhomog.v_y;
+    _custom_homog.v_z=customhomog.v_z;
+
+
+    orb_advertise(ORB_ID(i3s_custom), &_custom_homog);
+    _i3s_custom_pub.publish(_custom_homog);
+
+
+
+
+//
+}
+void
+MavlinkReceiver::handle_message_i3s_img_corners(mavlink_message_t *msg){
+    //custom I3S image corners message
+
+mavlink_i3s_img_corners_t imagecorners;
+mavlink_msg_i3s_img_corners_decode(msg, &imagecorners);
+
+
+struct image_corners_s _image_corners={};
+
+    _image_corners.timestamp=hrt_absolute_time();
+    _image_corners.img_proc_qlty=imagecorners.img_proc_qlty;
+    _image_corners.ulc_x=imagecorners.ulc_x;
+    _image_corners.ulc_y=imagecorners.ulc_y;
+    _image_corners.ulc_z=imagecorners.ulc_z;
+
+    _image_corners.urc_x=imagecorners.urc_x;
+    _image_corners.urc_y=imagecorners.urc_y;
+    _image_corners.urc_z=imagecorners.urc_z;
+
+    _image_corners.lrc_x=imagecorners.lrc_x;
+    _image_corners.lrc_y=imagecorners.lrc_y;
+    _image_corners.lrc_z=imagecorners.lrc_z;
+
+    _image_corners.llc_x=imagecorners.llc_x;
+    _image_corners.llc_y=imagecorners.llc_y;
+    _image_corners.llc_z=imagecorners.llc_z;
+
+
+/*
+        orb_advertise(ORB_ID(image_corners), &_image_corners);
+        _image_coners_pub.publish(_image_corners);
+*/
+
+    if (_image_corners_pub1 == nullptr) {
+            _image_corners_pub1 = orb_advertise(ORB_ID(image_corners), &_image_corners);
+
+        } else {
+            orb_publish(ORB_ID(image_corners), _image_corners_pub1 , &_image_corners);
+        }
+
+   //
+}
+
+
+
+
 void
 MavlinkReceiver::Run()
 {

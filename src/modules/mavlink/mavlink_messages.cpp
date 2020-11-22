@@ -53,7 +53,7 @@
 #include <px4_time.h>
 #include <systemlib/mavlink_log.h>
 #include <math.h>
-
+#include <v2.0/custom_messages/mavlink.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -109,6 +109,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/pnp_estimates.h>
 
 using matrix::wrap_2pi;
 
@@ -5024,6 +5025,81 @@ protected:
 	}
 };
 
+//Agenium
+class MavlinkStreamPNP : public MavlinkStream
+{
+public:
+    const char *get_name() const
+    {
+        return MavlinkStreamPNP::get_name_static();
+    }
+    static const char *get_name_static()
+    {
+        return "PNP_ESTIMATES";
+    }
+
+    static uint16_t get_id_static()
+    {
+        return MAVLINK_MSG_ID_PNPESTIMATES;;
+    }
+
+    uint16_t get_id()
+    {
+        return get_id_static();
+    }
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamPNP(mavlink);
+    }
+    unsigned get_size()
+    {
+        return MAVLINK_MSG_ID_PNPESTIMATES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+
+private:
+    MavlinkOrbSubscription *_sub;
+    uint64_t _pnp_estimate_time;
+
+    /* do not allow top copying this class */
+    MavlinkStreamPNP(MavlinkStreamPNP &);
+    MavlinkStreamPNP& operator = (const MavlinkStreamPNP &);
+
+protected:
+    explicit MavlinkStreamPNP(Mavlink *mavlink) : MavlinkStream(mavlink),
+        _sub(_mavlink->add_orb_subscription(ORB_ID(pnp_estimates))),  // make sure you enter the name of your uORB topic here
+        _pnp_estimate_time(0)
+    {}
+
+    bool send(const hrt_abstime t)
+    {
+        struct pnp_estimates_s _pnp_estimates;    //make sure ca_traj_struct_s is the definition of your uORB topic
+
+        if (_sub->update(&_pnp_estimate_time, &_pnp_estimates)) {
+            mavlink_pnpestimates_t _msg_pnp_etimates;  //make sure mavlink_ca_trajectory_t is the definition of your custom MAVLink message
+
+            _msg_pnp_etimates.time_usec = _pnp_estimates.timestamp;
+            _msg_pnp_etimates.q[0] = _pnp_estimates.q[0];
+            _msg_pnp_etimates.q[1] = _pnp_estimates.q[1];
+            _msg_pnp_etimates.q[2] = _pnp_estimates.q[2];
+            _msg_pnp_etimates.q[3] = _pnp_estimates.q[3];
+
+            _msg_pnp_etimates.x = _pnp_estimates.x;
+            _msg_pnp_etimates.y = _pnp_estimates.y;
+            _msg_pnp_etimates.z = _pnp_estimates.z;
+
+            _msg_pnp_etimates.vx = _pnp_estimates.vx;
+            _msg_pnp_etimates.vy = _pnp_estimates.vy;
+            _msg_pnp_etimates.vz = _pnp_estimates.vz;
+
+            mavlink_msg_pnpestimates_send_struct(_mavlink->get_channel(), &_msg_pnp_etimates);
+        }
+
+
+        return true;
+    }
+};
+
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -5083,7 +5159,10 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
-	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
+    StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static),
+    StreamListItem(&MavlinkStreamPNP ::new_instance, &MavlinkStreamPNP ::get_name_static,&MavlinkStreamPNP::get_id_static)
+
+
 };
 
 const char *get_stream_name(const uint16_t msg_id)
