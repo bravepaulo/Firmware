@@ -148,6 +148,10 @@ set(msg_files
 	vtol_vehicle_status.msg
 	wheel_encoders.msg
 	wind_estimate.msg
+        i3s_custom.msg
+	image_corners.msg
+	pnp_estimates.msg
+	thrust_off_i3s.msg
 	)
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
